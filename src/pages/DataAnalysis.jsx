@@ -47,6 +47,7 @@ export default function DataAnalysis({ onBack }) {
         feedback: feedbackText || null,
         iteration,
       });
+      console.log("[DATA] API response:", res);
       setResult(res);
       setPhase("result");
     } catch (err) {

@@ -83,6 +83,8 @@ export default function SOPBuilder({ onBack }) {
         feedback: feedbackText || null,
         iteration,
       });
+      console.log("[SOP] API response:", res);
+      console.log("[SOP] steps:", res?.steps);
       setResult(res);
       setCheckedSteps({});
       setPhase("result");

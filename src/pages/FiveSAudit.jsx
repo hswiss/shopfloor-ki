@@ -74,6 +74,7 @@ export default function FiveSAudit({ onBack }) {
         feedback: feedbackText || null,
         iteration,
       });
+      console.log("[5S] API response:", res);
       setResult(res);
       setExpanded({});
       setPhase("result");

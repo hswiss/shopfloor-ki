@@ -100,9 +100,26 @@ function parseResult(data) {
   const textBlock = data.content && data.content.find((b) => b.type === "text");
   if (!textBlock) return { raw: data };
 
+  let text = textBlock.text.trim();
+
+  // Strip markdown code fences if present (```json ... ``` or ``` ... ```)
+  const fenceMatch = text.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?\s*```$/);
+  if (fenceMatch) {
+    text = fenceMatch[1].trim();
+  }
+
   try {
-    return JSON.parse(textBlock.text);
+    return JSON.parse(text);
   } catch {
+    // Try to extract JSON object from surrounding text
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch {
+        // fall through
+      }
+    }
     return { raw: textBlock.text };
   }
 }
