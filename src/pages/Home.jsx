@@ -50,7 +50,7 @@ export default function Home({ onNavigate }) {
       id: "fives",
       emoji: "\u2705",
       title: "5S Audit",
-      description: "Arbeitsplatz pr\u00FCfen",
+      description: "Arbeitsplatz pruefen",
       accent: "#34D399",
     },
     {

@@ -233,7 +233,7 @@ export default function SOPBuilder({ onBack, savedResult }) {
               <p className="text-orange-400 text-sm font-medium">
                 SOP-Kette: {chain.length} {chain.length === 1 ? "Abschnitt" : "Abschnitte"} erstellt
               </p>
-              <p className="text-zinc-400 text-xs mt-1">N\u00E4chsten Arbeitsschritt beschreiben:</p>
+              <p className="text-zinc-400 text-xs mt-1">Naechsten Arbeitsschritt beschreiben:</p>
             </div>
           )}
 
@@ -329,7 +329,7 @@ export default function SOPBuilder({ onBack, savedResult }) {
                 onClick={() => setShowMeta(false)}
                 className="flex items-center justify-between w-full text-left mb-3"
               >
-                <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Details erg\u00E4nzen</h3>
+                <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Details ergaenzen</h3>
                 <span className="text-zinc-500 text-xs">optional</span>
               </button>
               <div className="space-y-3">
@@ -378,7 +378,7 @@ export default function SOPBuilder({ onBack, savedResult }) {
             onClick={addToChain}
             className="w-full h-14 rounded-xl font-semibold text-sm text-orange-400 border border-dashed border-orange-500/30 bg-orange-500/5 active:scale-[0.98] transition-transform"
           >
-            + Weiteren Abschnitt hinzuf\u00FCgen
+            + Weiteren Abschnitt hinzufuegen
           </button>
 
           {/* Actions */}

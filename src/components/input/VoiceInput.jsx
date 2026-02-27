@@ -138,7 +138,7 @@ export default function VoiceInput({ onTranscript, disabled }) {
       </div>
       <p className="text-zinc-400 text-sm">
         {isRecording
-          ? "Aufnahme l\u00E4uft \u2013 tippen zum Stoppen"
+          ? "Aufnahme laeuft - tippen zum Stoppen"
           : "Tippen zum Aufnehmen"}
       </p>
     </div>
