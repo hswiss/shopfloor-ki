@@ -21,16 +21,16 @@ function scoreColor(pct) {
   return "#EF4444";
 }
 
-export default function DataAnalysis({ onBack }) {
-  const [phase, setPhase] = useState("input");
+export default function DataAnalysis({ onBack, savedResult }) {
+  const [phase, setPhase] = useState(savedResult ? "result" : "input");
   const [images, setImages] = useState([]);
   const [preset, setPreset] = useState("multimoment");
   const [context, setContext] = useState("");
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState(savedResult || null);
   const [chartFormat, setChartFormat] = useState("bar");
   const [iteration, setIteration] = useState(1);
   const [previousResult, setPreviousResult] = useState(null);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(!!savedResult);
   const [error, setError] = useState(null);
 
   async function runAnalysis(feedbackText) {

@@ -31,15 +31,15 @@ function dotColor(status) {
   return "bg-red-400";
 }
 
-export default function FiveSAudit({ onBack }) {
-  const [phase, setPhase] = useState("input");
+export default function FiveSAudit({ onBack, savedResult }) {
+  const [phase, setPhase] = useState(savedResult ? "result" : "input");
   const [image, setImage] = useState(null);
   const [context, setContext] = useState("");
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState(savedResult || null);
   const [viewMode, setViewMode] = useState("scorecard");
   const [iteration, setIteration] = useState(1);
   const [previousResult, setPreviousResult] = useState(null);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(!!savedResult);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState({});
 

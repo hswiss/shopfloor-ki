@@ -23,16 +23,16 @@ const FEEDBACK_CHIPS = [
   { label: "Schritt korrigieren", text: "Bitte korrigiere folgenden Schritt: " },
 ];
 
-export default function SOPBuilder({ onBack }) {
-  const [phase, setPhase] = useState("input");
+export default function SOPBuilder({ onBack, savedResult }) {
+  const [phase, setPhase] = useState(savedResult ? "result" : "input");
   const [category, setCategory] = useState("montage");
   const [inputText, setInputText] = useState("");
   const [inputImage, setInputImage] = useState(null);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState(savedResult || null);
   const [sopFormat, setSopFormat] = useState("steps");
   const [iteration, setIteration] = useState(1);
   const [previousResult, setPreviousResult] = useState(null);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(!!savedResult);
   const [error, setError] = useState(null);
   const [chain, setChain] = useState([]);
   const [chainIndex, setChainIndex] = useState(0);

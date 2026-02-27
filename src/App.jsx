@@ -7,10 +7,12 @@ import DataAnalysis from "./pages/DataAnalysis";
 function App() {
   const [screen, setScreen] = useState("home");
   const [fade, setFade] = useState(true);
+  const [savedResult, setSavedResult] = useState(null);
 
-  function navigateTo(target) {
+  function navigateTo(target, result) {
     setFade(false);
     setTimeout(() => {
+      setSavedResult(result || null);
       setScreen(target);
       setFade(true);
     }, 150);
@@ -27,9 +29,9 @@ function App() {
           className={`transition-opacity duration-150 ${fade ? "opacity-100" : "opacity-0"}`}
         >
           {screen === "home" && <Home onNavigate={navigateTo} />}
-          {screen === "sop" && <SOPBuilder onBack={goHome} />}
-          {screen === "fives" && <FiveSAudit onBack={goHome} />}
-          {screen === "data" && <DataAnalysis onBack={goHome} />}
+          {screen === "sop" && <SOPBuilder onBack={goHome} savedResult={savedResult} />}
+          {screen === "fives" && <FiveSAudit onBack={goHome} savedResult={savedResult} />}
+          {screen === "data" && <DataAnalysis onBack={goHome} savedResult={savedResult} />}
         </div>
       </div>
     </div>
