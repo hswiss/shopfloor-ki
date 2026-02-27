@@ -1,21 +1,41 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const SpeechRecognition = typeof window !== "undefined"
   ? window.SpeechRecognition || window.webkitSpeechRecognition
   : null;
 
+const SILENCE_TIMEOUT = 8000;
+const WARNING_AT = 5000;
+
 export default function VoiceInput({ onTranscript, disabled }) {
   const [recording, setRecording] = useState(false);
   const [supported] = useState(!!SpeechRecognition);
+  const [warning, setWarning] = useState(false);
   const recognitionRef = useRef(null);
   const silenceTimer = useRef(null);
+  const warningTimer = useRef(null);
+  const hasReceivedResult = useRef(false);
 
-  const resetSilenceTimer = useCallback(() => {
+  function resetSilenceTimer() {
     clearTimeout(silenceTimer.current);
+    clearTimeout(warningTimer.current);
+    setWarning(false);
+
+    warningTimer.current = setTimeout(() => {
+      setWarning(true);
+    }, WARNING_AT);
+
     silenceTimer.current = setTimeout(() => {
       stopRecording();
-    }, 3000);
-  }, []);
+    }, SILENCE_TIMEOUT);
+  }
+
+  function clearTimers() {
+    clearTimeout(silenceTimer.current);
+    clearTimeout(warningTimer.current);
+    setWarning(false);
+    hasReceivedResult.current = false;
+  }
 
   function startRecording() {
     if (!SpeechRecognition || disabled) return;
@@ -28,7 +48,12 @@ export default function VoiceInput({ onTranscript, disabled }) {
     let finalTranscript = "";
 
     recognition.onresult = (e) => {
+      // Start silence timer only after first result arrives
+      if (!hasReceivedResult.current) {
+        hasReceivedResult.current = true;
+      }
       resetSilenceTimer();
+
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
@@ -43,7 +68,7 @@ export default function VoiceInput({ onTranscript, disabled }) {
 
     recognition.onend = () => {
       setRecording(false);
-      clearTimeout(silenceTimer.current);
+      clearTimers();
       if (finalTranscript.trim()) {
         onTranscript(finalTranscript.trim(), true);
       }
@@ -51,17 +76,17 @@ export default function VoiceInput({ onTranscript, disabled }) {
 
     recognition.onerror = () => {
       setRecording(false);
-      clearTimeout(silenceTimer.current);
+      clearTimers();
     };
 
     recognitionRef.current = recognition;
     recognition.start();
     setRecording(true);
-    resetSilenceTimer();
+    // No silence timer here — timer starts only after first result
   }
 
   function stopRecording() {
-    clearTimeout(silenceTimer.current);
+    clearTimers();
     recognitionRef.current?.stop();
     setRecording(false);
   }
@@ -77,6 +102,7 @@ export default function VoiceInput({ onTranscript, disabled }) {
   useEffect(() => {
     return () => {
       clearTimeout(silenceTimer.current);
+      clearTimeout(warningTimer.current);
       recognitionRef.current?.stop();
     };
   }, []);
@@ -112,7 +138,11 @@ export default function VoiceInput({ onTranscript, disabled }) {
         </button>
       </div>
       <p className="text-zinc-400 text-sm">
-        {recording ? "Aufnahme läuft – nochmal tippen zum Stoppen" : "Tippen zum Aufnehmen"}
+        {recording
+          ? warning
+            ? "Aufnahme endet in 3s..."
+            : "Aufnahme läuft \u2013 nochmal tippen zum Stoppen"
+          : "Tippen zum Aufnehmen"}
       </p>
     </div>
   );
