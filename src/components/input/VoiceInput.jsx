@@ -1,111 +1,110 @@
-import { useState, useRef, useEffect } from "react";
-
-const SpeechRecognition = typeof window !== "undefined"
-  ? window.SpeechRecognition || window.webkitSpeechRecognition
-  : null;
-
-const SILENCE_TIMEOUT = 8000;
-const WARNING_AT = 5000;
+import { useState, useRef, useCallback, useEffect } from "react";
 
 export default function VoiceInput({ onTranscript, disabled }) {
-  const [recording, setRecording] = useState(false);
-  const [supported] = useState(!!SpeechRecognition);
-  const [warning, setWarning] = useState(false);
-  const recognitionRef = useRef(null);
-  const silenceTimer = useRef(null);
-  const warningTimer = useRef(null);
-  const hasReceivedResult = useRef(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [supported, setSupported] = useState(true);
+  const [interimText, setInterimText] = useState("");
 
-  function resetSilenceTimer() {
-    clearTimeout(silenceTimer.current);
-    clearTimeout(warningTimer.current);
-    setWarning(false);
+  const recognition = useRef(null);
+  const finalTextRef = useRef("");
+  const stoppingRef = useRef(false);
 
-    warningTimer.current = setTimeout(() => {
-      setWarning(true);
-    }, WARNING_AT);
+  // Initialize once on mount
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      setSupported(false);
+      return;
+    }
 
-    silenceTimer.current = setTimeout(() => {
-      stopRecording();
-    }, SILENCE_TIMEOUT);
-  }
+    const rec = new SR();
+    rec.lang = "de-DE";
+    rec.continuous = true;
+    rec.interimResults = true;
 
-  function clearTimers() {
-    clearTimeout(silenceTimer.current);
-    clearTimeout(warningTimer.current);
-    setWarning(false);
-    hasReceivedResult.current = false;
-  }
-
-  function startRecording() {
-    if (!SpeechRecognition || disabled) return;
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = "de-DE";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    let finalTranscript = "";
-
-    recognition.onresult = (e) => {
-      // Start silence timer only after first result arrives
-      if (!hasReceivedResult.current) {
-        hasReceivedResult.current = true;
-      }
-      resetSilenceTimer();
-
+    rec.onresult = (e) => {
       let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
+      for (let i = 0; i < e.results.length; i++) {
+        const transcript = e.results[i][0].transcript;
         if (e.results[i].isFinal) {
-          finalTranscript += t + " ";
+          // Only append genuinely new final results
+          // Build full final text from all final results to avoid duplication
+          let allFinal = "";
+          for (let j = 0; j <= i; j++) {
+            if (e.results[j].isFinal) {
+              allFinal += e.results[j][0].transcript + " ";
+            }
+          }
+          finalTextRef.current = allFinal;
         } else {
-          interim = t;
+          interim = transcript;
         }
       }
-      onTranscript(finalTranscript + interim, false);
-    };
-
-    recognition.onend = () => {
-      setRecording(false);
-      clearTimers();
-      if (finalTranscript.trim()) {
-        onTranscript(finalTranscript.trim(), true);
+      setInterimText(interim);
+      // Always report current state: all finals + current interim
+      const combined = (finalTextRef.current + interim).trim();
+      if (combined) {
+        onTranscript(combined, false);
       }
     };
 
-    recognition.onerror = () => {
-      setRecording(false);
-      clearTimers();
+    rec.onend = () => {
+      setIsRecording(false);
+      setInterimText("");
+      // Deliver final text
+      const final = finalTextRef.current.trim();
+      if (final) {
+        onTranscript(final, true);
+      }
+      // Do NOT restart — user controls start/stop
     };
 
-    recognitionRef.current = recognition;
-    recognition.start();
-    setRecording(true);
-    // No silence timer here — timer starts only after first result
-  }
+    rec.onerror = (e) => {
+      // "aborted" is expected when user stops manually
+      if (e.error !== "aborted") {
+        console.warn("[VoiceInput] error:", e.error);
+      }
+      setIsRecording(false);
+      setInterimText("");
+    };
 
-  function stopRecording() {
-    clearTimers();
-    recognitionRef.current?.stop();
-    setRecording(false);
-  }
+    recognition.current = rec;
 
-  function toggle() {
-    if (recording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  }
-
-  useEffect(() => {
     return () => {
-      clearTimeout(silenceTimer.current);
-      clearTimeout(warningTimer.current);
-      recognitionRef.current?.stop();
+      rec.abort();
     };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const start = useCallback(() => {
+    if (!recognition.current || disabled) return;
+    finalTextRef.current = "";
+    stoppingRef.current = false;
+    setInterimText("");
+    try {
+      recognition.current.start();
+      setIsRecording(true);
+    } catch {
+      // Already started — ignore
+    }
+  }, [disabled]);
+
+  const stop = useCallback(() => {
+    if (!recognition.current || stoppingRef.current) return;
+    stoppingRef.current = true;
+    try {
+      recognition.current.stop();
+    } catch {
+      // Already stopped — ignore
+    }
   }, []);
+
+  const toggle = useCallback(() => {
+    if (isRecording) {
+      stop();
+    } else {
+      start();
+    }
+  }, [isRecording, start, stop]);
 
   if (!supported) {
     return (
@@ -122,7 +121,7 @@ export default function VoiceInput({ onTranscript, disabled }) {
     <div className="flex flex-col items-center gap-3">
       <div className="relative flex items-center justify-center">
         {/* Pulsing ring */}
-        {recording && (
+        {isRecording && (
           <>
             <span className="absolute w-[88px] h-[88px] rounded-full bg-orange-500/20 animate-ping" />
             <span className="absolute w-[96px] h-[96px] rounded-full border-2 border-orange-500/30 animate-pulse" />
@@ -132,16 +131,14 @@ export default function VoiceInput({ onTranscript, disabled }) {
           onClick={toggle}
           disabled={disabled}
           className="relative z-10 w-[72px] h-[72px] rounded-full flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
-          style={{ backgroundColor: recording ? "#EF4444" : "#FF6B2C" }}
+          style={{ backgroundColor: isRecording ? "#EF4444" : "#FF6B2C" }}
         >
-          {recording ? <StopIcon /> : <MicIcon />}
+          {isRecording ? <StopIcon /> : <MicIcon />}
         </button>
       </div>
       <p className="text-zinc-400 text-sm">
-        {recording
-          ? warning
-            ? "Aufnahme endet in 3s..."
-            : "Aufnahme läuft \u2013 nochmal tippen zum Stoppen"
+        {isRecording
+          ? "Aufnahme l\u00E4uft \u2013 tippen zum Stoppen"
           : "Tippen zum Aufnehmen"}
       </p>
     </div>

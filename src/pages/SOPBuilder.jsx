@@ -41,15 +41,21 @@ export default function SOPBuilder({ onBack, savedResult }) {
   const fileRef = useRef(null);
   const textareaRef = useRef(null);
 
+  // VoiceInput delivers the full cumulative text on each event.
+  // On isFinal=true, append the final transcript to any existing typed text.
+  // On isFinal=false (live preview), show it as a temporary suffix.
+  const preVoiceText = useRef(null);
+
   function handleTranscript(text, isFinal) {
+    if (preVoiceText.current === null) {
+      // First call in this recording session — snapshot existing text
+      preVoiceText.current = inputText;
+    }
+    const prefix = preVoiceText.current ? preVoiceText.current + " " : "";
+    setInputText(prefix + text);
     if (isFinal) {
-      setInputText((prev) => (prev ? prev + " " + text : text));
-    } else {
-      // Show live interim in textarea
-      setInputText((prev) => {
-        const base = prev.replace(/\s*\[.*\]$/, "");
-        return base ? base + " " + text : text;
-      });
+      // Reset so next recording session snapshots again
+      preVoiceText.current = null;
     }
   }
 
