@@ -2,7 +2,6 @@ import { useState, useRef } from "react";
 import CategorySelector from "../components/input/CategorySelector";
 import VoiceInput from "../components/input/VoiceInput";
 import SOPResult from "../components/output/SOPResult";
-import SOPChain from "../components/sop/SOPChain";
 import FeedbackInput from "../components/feedback/FeedbackInput";
 import IterationBadge from "../components/feedback/IterationBadge";
 import LoadingState from "../components/shared/LoadingState";
@@ -18,12 +17,6 @@ const LOADING_TEXTS = [
   "SOP wird erstellt...",
 ];
 
-const FEEDBACK_CHIPS = [
-  { label: "Mehr Detail", text: "Bitte füge mehr Details zu den Schritten hinzu, insbesondere " },
-  { label: "Drehmoment ergänzen", text: "Bitte ergänze die Drehmomente und Anzugsmomente für " },
-  { label: "Schritt korrigieren", text: "Bitte korrigiere folgenden Schritt: " },
-];
-
 export default function SOPBuilder({ onBack, savedResult }) {
   const [phase, setPhase] = useState(savedResult ? "result" : "input");
   const [category, setCategory] = useState("montage");
@@ -36,27 +29,29 @@ export default function SOPBuilder({ onBack, savedResult }) {
   const [saved, setSaved] = useState(!!savedResult);
   const [error, setError] = useState(null);
   const [chain, setChain] = useState([]);
-  const [chainIndex, setChainIndex] = useState(0);
   const [checkedSteps, setCheckedSteps] = useState({});
+
+  // Document metadata (optional fields user can fill in)
+  const [meta, setMeta] = useState({
+    area: "",
+    author: "",
+    machine: "",
+  });
+  const [showMeta, setShowMeta] = useState(false);
 
   const fileRef = useRef(null);
   const resultRef = useRef(null);
-  const textareaRef = useRef(null);
 
-  // VoiceInput delivers the full cumulative text on each event.
-  // On isFinal=true, append the final transcript to any existing typed text.
-  // On isFinal=false (live preview), show it as a temporary suffix.
+  // Voice input
   const preVoiceText = useRef(null);
 
   function handleTranscript(text, isFinal) {
     if (preVoiceText.current === null) {
-      // First call in this recording session — snapshot existing text
       preVoiceText.current = inputText;
     }
     const prefix = preVoiceText.current ? preVoiceText.current + " " : "";
     setInputText(prefix + text);
     if (isFinal) {
-      // Reset so next recording session snapshots again
       preVoiceText.current = null;
     }
   }
@@ -92,11 +87,21 @@ export default function SOPBuilder({ onBack, savedResult }) {
         iteration,
       });
       console.log("[SOP] API response:", res);
-      console.log("[SOP] steps:", res?.steps);
       setResult(res);
       setCheckedSteps({});
       setPhase("result");
       success();
+
+      // Pre-fill meta from KI result
+      if (iteration === 1 && !feedbackText) {
+        setMeta((prev) => ({
+          area: prev.area || res.category || "",
+          author: prev.author,
+          machine: prev.machine || "",
+        }));
+        setShowMeta(true);
+      }
+
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     } catch (err) {
       setError(err.message);
@@ -116,6 +121,7 @@ export default function SOPBuilder({ onBack, savedResult }) {
       feature: "sop",
       title: result?.title || "Arbeitsanweisung",
       chain: allSops,
+      meta,
       ...result,
     });
     setSaved(true);
@@ -123,21 +129,22 @@ export default function SOPBuilder({ onBack, savedResult }) {
 
   async function handleShare() {
     const allSops = chain.length > 0 ? [...chain, result] : [result];
-    const text = allSops.map((sop, si) => {
-      let out = chain.length > 0 ? `\n--- SOP-${String(si + 1).padStart(3, "0")}: ${sop.title || "Arbeitsanweisung"} ---\n` : `${sop.title || "Arbeitsanweisung"}\n`;
+    let globalNr = 1;
+    const text = allSops.map((sop) => {
+      let out = `${sop.title || "Arbeitsanweisung"}\n`;
       if (sop.category) out += `Kategorie: ${sop.category}\n`;
       if (sop.total_time_min) out += `Gesamtzeit: ${sop.total_time_min} Min.\n\n`;
       if (sop.steps) {
         sop.steps.forEach((s) => {
-          out += `${s.nr}. ${s.action}`;
+          out += `${globalNr++}. ${s.action}`;
           if (s.time_min) out += ` (${s.time_min} Min.)`;
           if (s.tools?.length) out += `\n   Werkzeuge: ${s.tools.join(", ")}`;
-          if (s.safety) out += `\n   ⚠️ ${s.safety}`;
+          if (s.safety) out += `\n   \u26A0\uFE0F ${s.safety}`;
           out += "\n";
         });
       }
       return out;
-    }).join("\n");
+    }).join("\n---\n\n");
 
     if (navigator.share) {
       try { await navigator.share({ title: result?.title || "SOP", text }); } catch { /* cancelled */ }
@@ -148,8 +155,6 @@ export default function SOPBuilder({ onBack, savedResult }) {
 
   function addToChain() {
     setChain((prev) => [...prev, result]);
-    setChainIndex(chain.length + 1);
-    // Reset for new input
     setPhase("input");
     setInputText("");
     setInputImage(null);
@@ -159,13 +164,7 @@ export default function SOPBuilder({ onBack, savedResult }) {
     setSaved(false);
     setCheckedSteps({});
     setError(null);
-  }
-
-  function selectChainItem(index) {
-    setChainIndex(index);
-    setResult(chain[index]);
-    setSopFormat("steps");
-    setCheckedSteps({});
+    setShowMeta(false);
   }
 
   function resetAll() {
@@ -179,9 +178,10 @@ export default function SOPBuilder({ onBack, savedResult }) {
     setPreviousResult(null);
     setSaved(false);
     setChain([]);
-    setChainIndex(0);
     setCheckedSteps({});
     setError(null);
+    setMeta({ area: "", author: "", machine: "" });
+    setShowMeta(false);
   }
 
   function autoResize(el) {
@@ -192,6 +192,10 @@ export default function SOPBuilder({ onBack, savedResult }) {
 
   function toggleStep(nr) {
     setCheckedSteps((prev) => ({ ...prev, [nr]: !prev[nr] }));
+  }
+
+  function updateMeta(key, value) {
+    setMeta((prev) => ({ ...prev, [key]: value }));
   }
 
   return (
@@ -227,9 +231,9 @@ export default function SOPBuilder({ onBack, savedResult }) {
           {chain.length > 0 && (
             <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-3">
               <p className="text-orange-400 text-sm font-medium">
-                SOP-Kette: {chain.length} {chain.length === 1 ? "Schritt" : "Schritte"} erstellt
+                SOP-Kette: {chain.length} {chain.length === 1 ? "Abschnitt" : "Abschnitte"} erstellt
               </p>
-              <p className="text-zinc-400 text-xs mt-1">Nächsten Arbeitsschritt beschreiben:</p>
+              <p className="text-zinc-400 text-xs mt-1">N\u00E4chsten Arbeitsschritt beschreiben:</p>
             </div>
           )}
 
@@ -247,7 +251,6 @@ export default function SOPBuilder({ onBack, savedResult }) {
             <label className="text-sm font-medium text-zinc-400 mb-2 block">Beschreibung</label>
             <div className="relative">
               <textarea
-                ref={textareaRef}
                 value={inputText}
                 onChange={(e) => {
                   setInputText(e.target.value);
@@ -257,7 +260,6 @@ export default function SOPBuilder({ onBack, savedResult }) {
                 rows={3}
                 className="w-full px-4 py-3 pr-12 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 text-sm placeholder:text-zinc-500 focus:outline-none focus:border-zinc-600 resize-none"
               />
-              {/* Camera button */}
               <button
                 onClick={() => fileRef.current?.click()}
                 className="absolute right-2 top-2 w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-lg active:scale-95 transition-transform"
@@ -273,7 +275,6 @@ export default function SOPBuilder({ onBack, savedResult }) {
                 className="hidden"
               />
             </div>
-            {/* Photo thumbnail */}
             {inputImage && (
               <div className="relative inline-block mt-2">
                 <img
@@ -309,33 +310,67 @@ export default function SOPBuilder({ onBack, savedResult }) {
       {/* ── RESULT PHASE ── */}
       {phase === "result" && result && (
         <div ref={resultRef} className="space-y-4">
-          {/* Chain */}
-          {chain.length > 0 && (
-            <SOPChain
-              chain={chain}
-              activeIndex={chainIndex}
-              onSelect={selectChainItem}
-              onAddNew={addToChain}
-            />
-          )}
-
-          {/* SOP Result */}
+          {/* SOP Document */}
           <SOPResult
             sop={result}
+            chain={chain}
             format={sopFormat}
             onFormatChange={setSopFormat}
             checkedSteps={checkedSteps}
             onToggleStep={toggleStep}
+            iteration={iteration}
+            meta={meta}
           />
+
+          {/* ─── Details ergänzen ─── */}
+          {showMeta && (
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+              <button
+                onClick={() => setShowMeta(false)}
+                className="flex items-center justify-between w-full text-left mb-3"
+              >
+                <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Details erg\u00E4nzen</h3>
+                <span className="text-zinc-500 text-xs">optional</span>
+              </button>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-zinc-500 mb-1 block">Bereich/Station</label>
+                  <input
+                    type="text"
+                    value={meta.area}
+                    onChange={(e) => updateMeta("area", e.target.value)}
+                    placeholder="z.B. Montage Station 3"
+                    className="w-full h-10 px-3 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-500 mb-1 block">Erstellt von</label>
+                  <input
+                    type="text"
+                    value={meta.author}
+                    onChange={(e) => updateMeta("author", e.target.value)}
+                    placeholder="Name"
+                    className="w-full h-10 px-3 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-500 mb-1 block">Bauteil/Maschine</label>
+                  <input
+                    type="text"
+                    value={meta.machine}
+                    onChange={(e) => updateMeta("machine", e.target.value)}
+                    placeholder="z.B. Radlader L120H"
+                    className="w-full h-10 px-3 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Feedback */}
           <div>
             <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-2">Feedback</h3>
-            <FeedbackInput
-              onSubmit={handleFeedback}
-              disabled={phase === "processing"}
-              suggestions={FEEDBACK_CHIPS}
-            />
+            <FeedbackInput onSubmit={handleFeedback} disabled={phase === "processing"} />
           </div>
 
           {/* Add to chain */}
@@ -343,7 +378,7 @@ export default function SOPBuilder({ onBack, savedResult }) {
             onClick={addToChain}
             className="w-full h-14 rounded-xl font-semibold text-sm text-orange-400 border border-dashed border-orange-500/30 bg-orange-500/5 active:scale-[0.98] transition-transform"
           >
-            + Zur SOP-Kette hinzufügen
+            + Weiteren Abschnitt hinzuf\u00FCgen
           </button>
 
           {/* Actions */}

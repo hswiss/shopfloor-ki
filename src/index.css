@@ -35,3 +35,48 @@ body {
   opacity: 0;
   transition: opacity 150ms ease-in;
 }
+
+/* SOP print/screenshot mode — light background for export */
+.sop-print-mode {
+  background-color: #f4f4f5 !important;
+  border-color: #d4d4d8 !important;
+  color: #18181b !important;
+  padding: 24px !important;
+}
+.sop-print-mode * {
+  color: #18181b !important;
+  border-color: #d4d4d8 !important;
+}
+.sop-print-mode .text-zinc-100,
+.sop-print-mode .text-zinc-200,
+.sop-print-mode .text-zinc-300 {
+  color: #27272a !important;
+}
+.sop-print-mode .text-zinc-400,
+.sop-print-mode .text-zinc-500 {
+  color: #52525b !important;
+}
+.sop-print-mode .text-zinc-600 {
+  color: #71717a !important;
+}
+.sop-print-mode .bg-zinc-800,
+.sop-print-mode .bg-zinc-700\/50 {
+  background-color: #e4e4e7 !important;
+}
+.sop-print-mode .bg-zinc-900 {
+  background-color: #f4f4f5 !important;
+}
+.sop-print-mode .border-zinc-800 {
+  border-color: #d4d4d8 !important;
+}
+.sop-print-mode .text-orange-400,
+.sop-print-mode .text-amber-400,
+.sop-print-mode .text-amber-300\/90 {
+  color: #c2410c !important;
+}
+.sop-print-mode .bg-amber-500\/10 {
+  background-color: #fef3c7 !important;
+}
+.sop-print-mode .border-amber-500\/30 {
+  border-color: #f59e0b !important;
+}
