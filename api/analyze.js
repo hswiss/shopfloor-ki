@@ -57,7 +57,7 @@ ANTWORTE IMMER als valides JSON ohne Markdown-Backticks:
 };
 
 function getSystemPrompt(feature, preset) {
-  if (feature === "data" && preset === "multimoment") {
+  if (feature === "data") {
     return SYSTEM_PROMPTS.data_multimoment;
   }
   return SYSTEM_PROMPTS[feature] || null;
