@@ -6,6 +6,7 @@ import ActionButtons from "../components/shared/ActionButtons";
 import { analyze } from "../lib/api";
 import { saveResult } from "../lib/storage";
 import { resizeImage } from "../lib/camera";
+import { success } from "../lib/haptics";
 
 const LOADING_TEXTS = [
   "Arbeitsbereich wird analysiert...",
@@ -32,6 +33,7 @@ function dotColor(status) {
 }
 
 export default function FiveSAudit({ onBack, savedResult }) {
+  const resultRef = useRef(null);
   const [phase, setPhase] = useState(savedResult ? "result" : "input");
   const [image, setImage] = useState(null);
   const [context, setContext] = useState("");
@@ -78,6 +80,8 @@ export default function FiveSAudit({ onBack, savedResult }) {
       setResult(res);
       setExpanded({});
       setPhase("result");
+      success();
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     } catch (err) {
       setError(err.message);
       setPhase(result ? "result" : "input");
@@ -220,7 +224,7 @@ export default function FiveSAudit({ onBack, savedResult }) {
 
       {/* ── RESULT PHASE ── */}
       {phase === "result" && result && (
-        <div className="space-y-4">
+        <div ref={resultRef} className="space-y-4">
           {/* Photo */}
           {image && (
             <img

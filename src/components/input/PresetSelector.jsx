@@ -1,3 +1,5 @@
+import { tap } from "../../lib/haptics";
+
 const PRESETS = [
   { id: "multimoment", label: "Multimoment-\naufnahme", emoji: "\u23F0" },
   { id: "fehler", label: "Fehler-\nStrichliste", emoji: "\u274C" },
@@ -13,7 +15,7 @@ export default function PresetSelector({ selected, onSelect }) {
         return (
           <button
             key={p.id}
-            onClick={() => onSelect(p.id)}
+            onClick={() => { tap(); onSelect(p.id); }}
             className={`flex items-center gap-3 rounded-xl px-3 py-3 min-h-[56px] text-left transition-colors border ${
               active
                 ? "bg-blue-500/15 border-blue-500/40 text-zinc-100"

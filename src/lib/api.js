@@ -1,4 +1,8 @@
 export async function analyze({ feature, input, image, images, preset, category, previous_result, feedback, iteration }) {
+  if (!navigator.onLine) {
+    throw new Error("Keine Internetverbindung. Bitte verbinde dich mit WLAN oder mobilem Netz.");
+  }
+
   try {
     const res = await fetch("/api/analyze", {
       method: "POST",

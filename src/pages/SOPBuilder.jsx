@@ -10,6 +10,7 @@ import ActionButtons from "../components/shared/ActionButtons";
 import { analyze } from "../lib/api";
 import { saveResult } from "../lib/storage";
 import { resizeImage } from "../lib/camera";
+import { success } from "../lib/haptics";
 
 const LOADING_TEXTS = [
   "Sprache wird verarbeitet...",
@@ -39,6 +40,7 @@ export default function SOPBuilder({ onBack, savedResult }) {
   const [checkedSteps, setCheckedSteps] = useState({});
 
   const fileRef = useRef(null);
+  const resultRef = useRef(null);
   const textareaRef = useRef(null);
 
   // VoiceInput delivers the full cumulative text on each event.
@@ -94,6 +96,8 @@ export default function SOPBuilder({ onBack, savedResult }) {
       setResult(res);
       setCheckedSteps({});
       setPhase("result");
+      success();
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     } catch (err) {
       setError(err.message);
       setPhase(result ? "result" : "input");
@@ -304,7 +308,7 @@ export default function SOPBuilder({ onBack, savedResult }) {
 
       {/* ── RESULT PHASE ── */}
       {phase === "result" && result && (
-        <div className="space-y-4">
+        <div ref={resultRef} className="space-y-4">
           {/* Chain */}
           {chain.length > 0 && (
             <SOPChain

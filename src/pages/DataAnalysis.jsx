@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import PresetSelector from "../components/input/PresetSelector";
 import BatchCamera from "../components/input/BatchCamera";
 import DataChart from "../components/output/DataChart";
@@ -8,6 +8,7 @@ import LoadingState from "../components/shared/LoadingState";
 import ActionButtons from "../components/shared/ActionButtons";
 import { analyze } from "../lib/api";
 import { saveResult } from "../lib/storage";
+import { success } from "../lib/haptics";
 
 const LOADING_TEXTS = [
   "Strichlisten werden erkannt...",
@@ -22,6 +23,7 @@ function scoreColor(pct) {
 }
 
 export default function DataAnalysis({ onBack, savedResult }) {
+  const resultRef = useRef(null);
   const [phase, setPhase] = useState(savedResult ? "result" : "input");
   const [images, setImages] = useState([]);
   const [preset, setPreset] = useState("multimoment");
@@ -50,6 +52,8 @@ export default function DataAnalysis({ onBack, savedResult }) {
       console.log("[DATA] API response:", res);
       setResult(res);
       setPhase("result");
+      success();
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     } catch (err) {
       setError(err.message);
       setPhase(result ? "result" : "input");
@@ -166,7 +170,7 @@ export default function DataAnalysis({ onBack, savedResult }) {
 
       {/* ── RESULT PHASE ── */}
       {phase === "result" && result && (
-        <div className="space-y-4">
+        <div ref={resultRef} className="space-y-4">
           {/* Hero stats */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-center">
             <p className="text-4xl font-bold" style={{ color: scoreColor(result.value_add_percent || 0) }}>

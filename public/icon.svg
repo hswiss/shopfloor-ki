@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0A0A0B"/>
+  <g transform="translate(256,256)">
+    <!-- Gear -->
+    <circle cx="0" cy="0" r="100" fill="none" stroke="#60A5FA" stroke-width="28"/>
+    <circle cx="0" cy="0" r="40" fill="#60A5FA"/>
+    <g fill="#60A5FA">
+      <rect x="-14" y="-130" width="28" height="50" rx="8"/>
+      <rect x="-14" y="80" width="28" height="50" rx="8"/>
+      <rect x="-130" y="-14" width="50" height="28" rx="8"/>
+      <rect x="80" y="-14" width="50" height="28" rx="8"/>
+      <rect x="63" y="-101" width="28" height="50" rx="8" transform="rotate(45,77,-76)"/>
+      <rect x="-91" y="51" width="28" height="50" rx="8" transform="rotate(45,-77,76)"/>
+      <rect x="-91" y="-101" width="28" height="50" rx="8" transform="rotate(-45,-77,-76)"/>
+      <rect x="63" y="51" width="28" height="50" rx="8" transform="rotate(-45,77,76)"/>
+    </g>
+    <!-- Lightning bolt -->
+    <polygon points="-10,-55 15,-5 -5,-5 10,55 -15,5 5,5" fill="#FBBF24"/>
+  </g>
+</svg>

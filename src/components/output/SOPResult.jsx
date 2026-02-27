@@ -1,3 +1,5 @@
+import { tap } from "../../lib/haptics";
+
 const FORMAT_OPTIONS = [
   { id: "steps", label: "Schritte" },
   { id: "checklist", label: "Checkliste" },
@@ -8,19 +10,26 @@ const FORMAT_OPTIONS = [
 export default function SOPResult({ sop, format, onFormatChange, checkedSteps, onToggleStep }) {
   if (!sop) return null;
 
+  function handleFormat(id) {
+    tap();
+    onFormatChange(id);
+  }
+
   return (
     <div>
       {/* Title + Meta */}
       <div className="mb-4">
         <h2 className="text-lg font-bold text-zinc-100">{sop.title || "Arbeitsanweisung"}</h2>
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
           {sop.category && (
             <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-orange-500/15 text-orange-400 border border-orange-500/30">
               {sop.category}
             </span>
           )}
           {sop.total_time_min && (
-            <span className="text-zinc-400 text-sm">{"\u23F1"} {sop.total_time_min} Min. gesamt</span>
+            <span className="px-3 py-1 rounded-full text-sm font-semibold bg-zinc-800 text-zinc-200">
+              {"\u23F1"} {sop.total_time_min} Min. gesamt
+            </span>
           )}
         </div>
       </div>
@@ -41,7 +50,7 @@ export default function SOPResult({ sop, format, onFormatChange, checkedSteps, o
         {FORMAT_OPTIONS.map((opt) => (
           <button
             key={opt.id}
-            onClick={() => onFormatChange(opt.id)}
+            onClick={() => handleFormat(opt.id)}
             className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
               format === opt.id
                 ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
@@ -58,11 +67,12 @@ export default function SOPResult({ sop, format, onFormatChange, checkedSteps, o
 
 function StepCard({ step, children }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 border-l-4 border-l-orange-500 rounded-2xl p-4">
-      <div className="flex gap-3">
-        <span className="text-2xl font-bold text-orange-500 leading-none mt-0.5">
-          {step.nr}
-        </span>
+    <div className="bg-zinc-900 border border-zinc-800 border-l-4 border-l-orange-500 rounded-2xl p-4 shadow-lg shadow-black/20">
+      <div className="flex gap-4">
+        {/* Step number circle */}
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center">
+          <span className="text-lg font-bold text-white">{step.nr}</span>
+        </div>
         <div className="flex-1 min-w-0 space-y-2">
           {children}
           <p className="text-zinc-100 text-sm font-medium">{step.action}</p>
@@ -70,10 +80,22 @@ function StepCard({ step, children }) {
             <p className="text-zinc-400 text-xs">{"\u23F0"} {step.time_min} Min.</p>
           )}
           {step.tools && step.tools.length > 0 && (
-            <p className="text-zinc-400 text-xs">{"\u{1F527}"} {step.tools.join(", ")}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {step.tools.map((tool, i) => (
+                <span key={i} className="bg-zinc-800 rounded-full px-3 py-1 text-xs text-zinc-300">
+                  {"\u{1F527}"} {tool}
+                </span>
+              ))}
+            </div>
           )}
           {step.materials && step.materials.length > 0 && (
-            <p className="text-zinc-400 text-xs">{"\u{1F4E6}"} {step.materials.join(", ")}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {step.materials.map((mat, i) => (
+                <span key={i} className="bg-zinc-800 rounded-full px-3 py-1 text-xs text-zinc-300">
+                  {"\u{1F4E6}"} {mat}
+                </span>
+              ))}
+            </div>
           )}
           {step.safety && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2">
@@ -93,8 +115,15 @@ function StepsView({ steps }) {
   if (!steps || steps.length === 0) return <EmptySteps />;
   return (
     <div className="space-y-3">
-      {steps.map((step) => (
-        <StepCard key={step.nr} step={step} />
+      {steps.map((step, i) => (
+        <div key={step.nr}>
+          <StepCard step={step} />
+          {i < steps.length - 1 && (
+            <div className="flex justify-center py-1">
+              <div className="w-0.5 h-4 bg-zinc-800 rounded-full" />
+            </div>
+          )}
+        </div>
       ))}
     </div>
   );
@@ -107,7 +136,7 @@ function ChecklistView({ steps, checked = {}, onToggle }) {
       {steps.map((step) => (
         <StepCard key={step.nr} step={step}>
           <button
-            onClick={() => onToggle?.(step.nr)}
+            onClick={() => { tap(); onToggle?.(step.nr); }}
             className="flex items-center gap-2 mb-1"
           >
             <span
@@ -136,7 +165,7 @@ function ProseView({ sop }) {
   const prose = steps.map((s) => {
     let text = `Schritt ${s.nr}: ${s.action}`;
     if (s.time_min) text += ` (ca. ${s.time_min} Minuten)`;
-    if (s.tools?.length) text += `. Benötigte Werkzeuge: ${s.tools.join(", ")}`;
+    if (s.tools?.length) text += `. Ben\u00F6tigte Werkzeuge: ${s.tools.join(", ")}`;
     if (s.materials?.length) text += `. Hilfsmittel: ${s.materials.join(", ")}`;
     if (s.safety) text += `. Sicherheitshinweis: ${s.safety}`;
     return text + ".";
@@ -161,7 +190,9 @@ function ShortView({ steps }) {
     <div className="space-y-2">
       {short.map((step) => (
         <div key={step.nr} className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3">
-          <span className="text-lg font-bold text-orange-500">{step.nr}</span>
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
+            <span className="text-sm font-bold text-white">{step.nr}</span>
+          </div>
           <p className="text-zinc-100 text-sm">{step.action}</p>
         </div>
       ))}
@@ -188,14 +219,22 @@ function SummaryBox({ sop }) {
       )}
       {hasTools && (
         <div>
-          <p className="text-zinc-400 text-xs font-medium mb-1">{"\u{1F527}"} Werkzeuge</p>
-          <p className="text-zinc-300 text-sm">{sop.tools_needed.join(", ")}</p>
+          <p className="text-zinc-400 text-xs font-medium mb-1.5">{"\u{1F527}"} Werkzeuge</p>
+          <div className="flex flex-wrap gap-1.5">
+            {sop.tools_needed.map((t, i) => (
+              <span key={i} className="bg-zinc-800 rounded-full px-3 py-1 text-xs text-zinc-300">{t}</span>
+            ))}
+          </div>
         </div>
       )}
       {hasMaterials && (
         <div>
-          <p className="text-zinc-400 text-xs font-medium mb-1">{"\u{1F4E6}"} Hilfsmittel</p>
-          <p className="text-zinc-300 text-sm">{sop.materials_needed.join(", ")}</p>
+          <p className="text-zinc-400 text-xs font-medium mb-1.5">{"\u{1F4E6}"} Hilfsmittel</p>
+          <div className="flex flex-wrap gap-1.5">
+            {sop.materials_needed.map((m, i) => (
+              <span key={i} className="bg-zinc-800 rounded-full px-3 py-1 text-xs text-zinc-300">{m}</span>
+            ))}
+          </div>
         </div>
       )}
       {hasSafety && (
@@ -210,7 +249,7 @@ function SummaryBox({ sop }) {
         <div>
           <p className="text-zinc-400 text-xs font-medium mb-1">Voraussetzungen</p>
           {sop.prerequisites.map((p, i) => (
-            <p key={i} className="text-zinc-300 text-sm">• {p}</p>
+            <p key={i} className="text-zinc-300 text-sm">{"\u2022"} {p}</p>
           ))}
         </div>
       )}

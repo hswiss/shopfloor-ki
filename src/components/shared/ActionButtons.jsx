@@ -1,8 +1,15 @@
+import { success } from "../../lib/haptics";
+
 export default function ActionButtons({ onSave, onShare, saved }) {
+  function handleSave() {
+    onSave();
+    success();
+  }
+
   return (
     <div className="flex gap-3">
       <button
-        onClick={onSave}
+        onClick={handleSave}
         disabled={saved}
         className={`flex-1 h-14 rounded-xl font-semibold text-sm transition-colors ${
           saved

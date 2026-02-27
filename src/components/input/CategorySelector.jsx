@@ -1,3 +1,5 @@
+import { tap } from "../../lib/haptics";
+
 const CATEGORIES = [
   { id: "montage", label: "Montage", emoji: "\u{1F527}" },
   { id: "wartung", label: "Wartung", emoji: "\u2699\uFE0F" },
@@ -13,7 +15,7 @@ export default function CategorySelector({ value, onChange }) {
         return (
           <button
             key={c.id}
-            onClick={() => onChange(c.id)}
+            onClick={() => { tap(); onChange(c.id); }}
             className={`flex flex-col items-center gap-1 rounded-xl px-2 py-3 min-h-[56px] transition-colors border ${
               active
                 ? "bg-orange-500/15 border-orange-500/40 text-zinc-100"

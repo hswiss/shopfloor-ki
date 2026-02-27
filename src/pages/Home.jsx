@@ -67,7 +67,7 @@ export default function Home({ onNavigate }) {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-zinc-100">Shopfloor KI</h1>
-        <p className="text-zinc-400 text-sm">Lean Workshop Tool</p>
+        <p className="text-zinc-500 text-sm">Lean Workshop Tool</p>
       </div>
 
       {/* Feature Cards */}
